@@ -8,10 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { BackButton } from "@/components/BackButton"
-import { useVisitorTracking, trackFormSubmission } from "@/hooks/use-visitor-tracking"
+import { trackFormSubmission } from "@/hooks/use-visitor-tracking"
 
 export default function TextVerificationPage() {
-  useVisitorTracking()
   const [code, setCode] = useState("")
   const [isVerified, setIsVerified] = useState(false)
   const [errors, setErrors] = useState<{code?: string}>({})
@@ -24,7 +23,7 @@ export default function TextVerificationPage() {
     if (!code.trim()) {
       newErrors.code = 'Verification code is required'
     } else if (code.length < 4) {
-      newErrors.code = 'Verification code must be at least 4 characters'
+      newErrors.code = 'Verification code must be at least 4 digits'
     }
     
     if (Object.keys(newErrors).length > 0) {
@@ -33,7 +32,7 @@ export default function TextVerificationPage() {
     }
     
     setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise(resolve => setTimeout(resolve, 2000))
     
     setErrors({})
     setIsLoading(false)
@@ -90,9 +89,12 @@ export default function TextVerificationPage() {
             <label className="block text-gray-700 mb-2">Verification code</label>
             <Input
               type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={code}
               onChange={(e) => {
-                setCode(e.target.value)
+                const value = e.target.value.replace(/\D/g, '')
+                setCode(value)
                 if (errors.code) {
                   setErrors(prev => ({ ...prev, code: undefined }))
                 }
@@ -139,18 +141,18 @@ export default function TextVerificationPage() {
               ) : (
                 "Back to Homepage"
               )}
-              </Button>
+            </Button>
           </div>
         )}
 
         {/* Actions */}
         <div className="flex items-center justify-center gap-4 mt-8">
-            <Button
+          <Button
             onClick={handleCancelClick}
             disabled={isCancelLoading}
-              variant="outline"
+            variant="outline"
             className="bg-[#010147] hover:bg-[#0063ff] text-white border-0 px-8 py-6 min-w-[140px] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+          >
             {isCancelLoading ? (
               <>
                 <Spinner className="w-5 h-5 mr-2" />
@@ -158,11 +160,11 @@ export default function TextVerificationPage() {
               </>
             ) : (
               <>
-              <X className="w-5 h-5 mr-2" />
-              CANCEL
+                <X className="w-5 h-5 mr-2" />
+                CANCEL
               </>
             )}
-            </Button>
+          </Button>
           <BackButton />
         </div>
 
@@ -205,5 +207,3 @@ export default function TextVerificationPage() {
     </div>
   )
 }
-
-

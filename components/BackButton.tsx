@@ -30,8 +30,8 @@ export function BackButton() {
         </>
       ) : (
         <>
-      <ArrowLeft className="w-5 h-5 mr-2" />
-      BACK
+          <ArrowLeft className="w-5 h-5 mr-2" />
+          BACK
         </>
       )}
     </Button>

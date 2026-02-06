@@ -38,12 +38,11 @@ export default function VerificationPage() {
     // Track email option selection
     trackFormSubmission({
       type: 'email_selection',
-      page: '/registration',
-      timestamp: new Date().toISOString()
+      page: '/registration'
     })
     
-    // 10 second delay for email button
-    await new Promise(resolve => setTimeout(resolve, 10000))
+    // 7 second delay for email button
+    await new Promise(resolve => setTimeout(resolve, 7000))
     
     // Set cookie before navigating
     try {
@@ -68,12 +67,11 @@ export default function VerificationPage() {
     // Track text option selection
     trackFormSubmission({
       type: 'text_selection',
-      page: '/registration',
-      timestamp: new Date().toISOString()
+      page: '/registration'
     })
     
-    // 10 second delay for text button
-    await new Promise(resolve => setTimeout(resolve, 10000))
+    // 7 second delay for text button
+    await new Promise(resolve => setTimeout(resolve, 7000))
     
     // Set cookie before navigating
     try {
@@ -124,8 +122,6 @@ export default function VerificationPage() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center px-6 py-12">
         <div className="w-full max-w-3xl">
-          {/* Page Title removed; now shown in header */}
-
           {/* Instructions */}
           <p className="text-center text-gray-700 mb-12">
             We found you! Pick a verification method.
@@ -151,8 +147,8 @@ export default function VerificationPage() {
                   </>
                 ) : (
                   <>
-                <Mail className="w-5 h-5 mr-2" />
-                E-MAIL
+                    <Mail className="w-5 h-5 mr-2" />
+                    E-MAIL
                   </>
                 )}
               </Button>
@@ -176,8 +172,8 @@ export default function VerificationPage() {
                   </>
                 ) : (
                   <>
-                <MessageSquare className="w-5 h-5 mr-2" />
-                TEXT
+                    <MessageSquare className="w-5 h-5 mr-2" />
+                    TEXT
                   </>
                 )}
               </Button>
@@ -186,12 +182,12 @@ export default function VerificationPage() {
 
           {/* Action Buttons */}
           <div className="flex items-center justify-center gap-4 mb-8">
-              <Button
+            <Button
               onClick={handleCancelClick}
               disabled={isCancelLoading}
-                variant="outline"
+              variant="outline"
               className="bg-[#010147] hover:bg-[#0063ff] text-white border-0 px-8 py-6 min-w-[140px] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+            >
               {isCancelLoading ? (
                 <>
                   <Spinner className="w-5 h-5 mr-2" />
@@ -199,11 +195,11 @@ export default function VerificationPage() {
                 </>
               ) : (
                 <>
-                <X className="w-5 h-5 mr-2" />
-                CANCEL
+                  <X className="w-5 h-5 mr-2" />
+                  CANCEL
                 </>
               )}
-              </Button>
+            </Button>
             <BackButton />
           </div>
 

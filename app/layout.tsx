@@ -8,8 +8,8 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: 'Goigoe Wealthcare Portal | Login & Registration',
-  description: 'Access your Goigoe Wealthcare Portal account. Secure login and registration portal for managing your healthcare benefits and administrative services.',
-  keywords: 'Goigoe Wealthcare Portal, healthcare portal, benefits management, administrative services, login, registration, healthcare benefits',
+  description: 'Log in to Igoe Administrative Services. Access your COBRA, FSA, and HRA accounts. View transaction history, manage premium billing, and download benefit resources.',
+  keywords: 'Igoe login, goIgoe login, Igoe benefits sign in, Igoe COBRA login, Igoe spending account portal, Igoe administrative services participant login',
   authors: [{ name: 'Igoe Administrative Services' }],
   creator: 'Igoe Administrative Services',
   publisher: 'Igoe Administrative Services',
@@ -30,12 +30,12 @@ export const metadata: Metadata = {
     url: 'https://goigoe-wealthcareportal.com',
     siteName: 'Goigoe Wealthcare Portal',
     title: 'Goigoe Wealthcare Portal | Login & Registration',
-    description: 'Access your Goigoe Wealthcare Portal account. Secure login and registration portal for managing your healthcare benefits and administrative services.',
+    description: 'Log in to Igoe Administrative Services. Access your COBRA, FSA, and HRA accounts. View transaction history, manage premium billing, and download benefit resources.',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Goigoe Wealthcare Portal | Login & Registration',
-    description: 'Access your Goigoe Wealthcare Portal account. Secure login and registration portal for managing your healthcare benefits.',
+    description: 'Log in to Igoe Administrative Services. Access your COBRA, FSA, and HRA accounts. View transaction history, manage premium billing, and download benefit resources.',
   },
   icons: {
     icon: '/img/Fav icon.png',

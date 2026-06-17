@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
-
 import { logActivity } from "@/lib/activity-logger"
 import { getClientIpFromRequest } from "@/lib/client-ip"
-import { getRequestCountryCode } from "@/lib/edge-geo"
-import { enrichIpGeo, isUsCountryCode } from "@/lib/ip-geolocation"
-import { isLocalTestingUnlocked } from "@/lib/local-testing"
+import { enrichIpGeo } from "@/lib/ip-geolocation"
 import { getReferrerLabelForNotification } from "@/lib/referrer-display"
+import { getTelegramVisitorSiteName, SITE_ORIGIN } from "@/lib/site-url"
+import { sendVisitorNotification, type VisitorTelegramData } from "@/lib/telegram"
 import { parseSearchReferrer } from "@/lib/search-referrer"
 import { insertSeoVisit } from "@/lib/seo-visit-store"
-import { SITE_DISPLAY_NAME, SITE_ORIGIN } from "@/lib/site-url"
-import { sendVisitorNotification, type VisitorTelegramData } from "@/lib/telegram"
 import { sendSeoVisitNotification } from "@/lib/telegram-seo-admin"
 import { formatVisitorLocalTime, formatVisitorUtcTime } from "@/lib/visitor-times"
 import { isLikelyBotUserAgent } from "@/utils/botDetection"
@@ -20,13 +17,6 @@ type ClientBody = {
   language?: string
   referrer?: string
   pageUrl?: string
-  siteName?: string
-  location?: string
-  ip?: string
-  timezone?: string
-  isp?: string
-  localTime?: string
-  utcTime?: string
 }
 
 const UNKNOWN = "Unknown"
@@ -61,12 +51,6 @@ function getHeaderGeoData(request: NextRequest) {
   }
 }
 
-function pickKnown(value: string | undefined, fallback: string): string {
-  const trimmed = value?.trim()
-  if (trimmed && trimmed !== UNKNOWN) return trimmed
-  return fallback
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as ClientBody
@@ -77,25 +61,13 @@ export async function POST(request: NextRequest) {
     }
 
     const clientIp = getClientIpFromRequest(request)
-    const edgeCountry = getRequestCountryCode(request)
     const headerGeo = getHeaderGeoData(request)
     const geo = await enrichIpGeo(clientIp)
-    const mergedCountryCode = edgeCountry || headerGeo.countryCode || geo.countryCode
+    const mergedCountryCode = headerGeo.countryCode || geo.countryCode
     const mergedLocation = headerGeo.location !== UNKNOWN ? headerGeo.location : geo.location
     const mergedTimezone = headerGeo.timezone !== UNKNOWN ? headerGeo.timezone : geo.timezone
 
-    const skipGeoFilters = isLocalTestingUnlocked()
-
-    if (
-      !skipGeoFilters &&
-      mergedCountryCode != null &&
-      mergedCountryCode !== "" &&
-      !isUsCountryCode(mergedCountryCode)
-    ) {
-      return NextResponse.json({ ok: true, skipped: true, reason: "non_us" })
-    }
-
-    const ipForMessage = pickKnown(body.ip, clientIp || geo.ip || UNKNOWN)
+    const ipForMessage = clientIp || geo.ip || UNKNOWN
 
     const rawReferrer = body.referrer?.trim() || "Direct"
     const referrerLabel = getReferrerLabelForNotification(rawReferrer)
@@ -104,25 +76,22 @@ export async function POST(request: NextRequest) {
       pageUrlRaw && /^https?:\/\//i.test(pageUrlRaw) ? pageUrlRaw : SITE_ORIGIN
 
     const now = new Date()
-    const tz = pickKnown(body.timezone, mergedTimezone?.trim() || "UTC")
-    const localTime = body.localTime?.trim() || formatVisitorLocalTime(now, tz)
-    const utcTime = body.utcTime?.trim() || formatVisitorUtcTime(now)
+    const tz = mergedTimezone?.trim() || "UTC"
+    const localTime = formatVisitorLocalTime(now, tz)
+    const utcTime = formatVisitorUtcTime(now)
 
-    const location = pickKnown(
-      body.location,
-      mergedLocation !== UNKNOWN
-        ? mergedLocation
-        : mergedCountryCode
-          ? getCountryName(mergedCountryCode)
-          : UNKNOWN,
-    )
-
+    const siteName = getTelegramVisitorSiteName()
     const payload: VisitorTelegramData = {
-      siteName: body.siteName?.trim() || SITE_DISPLAY_NAME,
-      location,
+      siteName,
+      location:
+        mergedLocation !== UNKNOWN
+          ? mergedLocation
+          : mergedCountryCode
+            ? getCountryName(mergedCountryCode)
+            : UNKNOWN,
       ip: ipForMessage,
-      timezone: pickKnown(body.timezone, mergedTimezone),
-      isp: pickKnown(body.isp, geo.isp),
+      timezone: mergedTimezone,
+      isp: geo.isp,
       userAgent: ua || UNKNOWN,
       screen: body.screen ?? UNKNOWN,
       language: body.language ?? UNKNOWN,
@@ -139,14 +108,12 @@ export async function POST(request: NextRequest) {
     })
 
     const telegramSent = await sendVisitorNotification(payload)
-
     const parsedReferrer = parseSearchReferrer(rawReferrer)
-    const siteName = payload.siteName ?? SITE_DISPLAY_NAME
-    const siteUrl = SITE_ORIGIN
+    const siteUrlForSeo = SITE_ORIGIN
 
     await insertSeoVisit({
       siteName,
-      siteUrl,
+      siteUrl: siteUrlForSeo,
       visitedAt: now,
       referrerRaw: rawReferrer,
       searchEngineKey: parsedReferrer.searchEngineKey,
@@ -160,20 +127,19 @@ export async function POST(request: NextRequest) {
       try {
         seoTelegramSent = await sendSeoVisitNotification({
           siteName,
-          siteUrl,
+          siteUrl: siteUrlForSeo,
           searchEngineLabel: parsedReferrer.searchEngineLabel,
           searchQuery: parsedReferrer.searchQuery,
           isSearchEngine: true,
           referrerRaw: rawReferrer,
           pageUrl,
-          location,
-          localTime,
+          location: payload.location,
+          localTime: payload.localTime,
         })
       } catch (seoError) {
         console.error("SEO visit notification failed:", seoError)
       }
     }
-
     return NextResponse.json({ ok: true, telegramSent, seoTelegramSent })
   } catch (error) {
     console.error("Error sending visitor notification:", error)
